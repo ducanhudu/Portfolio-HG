@@ -4,13 +4,17 @@ const navLinks = [...document.querySelectorAll(".site-nav a")];
 const sections = [...document.querySelectorAll("main section[id], main section")];
 const trackedSections = [...document.querySelectorAll("main section[id]")];
 const progressBar = document.querySelector(".scroll-progress-bar");
+const cursorGlow = document.querySelector(".cursor-glow");
 const parallaxLayers = [...document.querySelectorAll(".parallax-layer")];
+const counters = [...document.querySelectorAll("[data-count-to]")];
+const magneticItems = [...document.querySelectorAll(".magnetic")];
 const interactiveCards = [
   ...document.querySelectorAll(
     ".hero-facts li, .content-card, .metric-card, .timeline-item, .project-card, .education-card, .skill-panel, .contact-card"
   ),
 ];
 const tiltCard = document.querySelector(".tilt-card");
+const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 revealItems.forEach((item, index) => {
   item.style.setProperty("--reveal-order", `${index}`);
@@ -32,6 +36,70 @@ const revealObserver = new IntersectionObserver(
 );
 
 revealItems.forEach((item) => revealObserver.observe(item));
+
+const formatCounterValue = (value, decimals, prefix, suffix, padLength) => {
+  const rounded = decimals > 0 ? value.toFixed(decimals) : Math.round(value).toString();
+  const padded = /^\d+$/.test(rounded) && padLength > 0 ? rounded.padStart(padLength, "0") : rounded;
+  return `${prefix}${padded}${suffix}`;
+};
+
+const animateCounter = (counter) => {
+  if (counter.dataset.counted === "true") {
+    return;
+  }
+
+  const target = Number(counter.dataset.countTo || 0);
+  const decimals = Number(counter.dataset.decimals || 0);
+  const prefix = counter.dataset.prefix || "";
+  const suffix = counter.dataset.suffix || "";
+  const padLength = Number(counter.dataset.padLength || 0);
+  const duration = 1200;
+  const start = performance.now();
+
+  counter.dataset.counted = "true";
+
+  const tick = (now) => {
+    const progress = Math.min((now - start) / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 4);
+    const current = target * eased;
+    counter.textContent = formatCounterValue(current, decimals, prefix, suffix, padLength);
+
+    if (progress < 1) {
+      window.requestAnimationFrame(tick);
+    } else {
+      counter.textContent = formatCounterValue(target, decimals, prefix, suffix, padLength);
+    }
+  };
+
+  window.requestAnimationFrame(tick);
+};
+
+if (!prefersReducedMotion) {
+  const counterObserver = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          animateCounter(entry.target);
+          counterObserver.unobserve(entry.target);
+        }
+      });
+    },
+    {
+      threshold: 0.45,
+    }
+  );
+
+  counters.forEach((counter) => counterObserver.observe(counter));
+} else {
+  counters.forEach((counter) => {
+    const target = Number(counter.dataset.countTo || 0);
+    const decimals = Number(counter.dataset.decimals || 0);
+    const prefix = counter.dataset.prefix || "";
+    const suffix = counter.dataset.suffix || "";
+    const padLength = Number(counter.dataset.padLength || 0);
+    counter.textContent = formatCounterValue(target, decimals, prefix, suffix, padLength);
+  });
+}
 
 const sectionObserver = new IntersectionObserver(
   (entries) => {
@@ -88,6 +156,15 @@ const updateOnScroll = () => {
   updateParallax();
 };
 
+const updateCursorGlow = (event) => {
+  if (!cursorGlow || prefersReducedMotion) {
+    return;
+  }
+
+  cursorGlow.style.opacity = "1";
+  cursorGlow.style.transform = `translate3d(${event.clientX}px, ${event.clientY}px, 0) translate(-50%, -50%)`;
+};
+
 let ticking = false;
 
 const requestTick = () => {
@@ -109,6 +186,21 @@ interactiveCards.forEach((card) => {
     card.style.setProperty("--mouse-y", `${y}%`);
   });
 });
+
+if (!prefersReducedMotion) {
+  magneticItems.forEach((item) => {
+    item.addEventListener("pointermove", (event) => {
+      const rect = item.getBoundingClientRect();
+      const offsetX = event.clientX - rect.left - rect.width / 2;
+      const offsetY = event.clientY - rect.top - rect.height / 2;
+      item.style.transform = `translate(${offsetX * 0.06}px, ${offsetY * 0.08}px)`;
+    });
+
+    item.addEventListener("pointerleave", () => {
+      item.style.transform = "";
+    });
+  });
+}
 
 if (tiltCard) {
   const resetTilt = () => {
@@ -133,8 +225,16 @@ if (tiltCard) {
 
 window.addEventListener("scroll", requestTick, { passive: true });
 window.addEventListener("resize", requestTick);
+window.addEventListener("pointermove", updateCursorGlow, { passive: true });
+
+window.addEventListener("pointerleave", () => {
+  if (cursorGlow) {
+    cursorGlow.style.opacity = "0";
+  }
+});
 
 window.addEventListener("load", () => {
   body.classList.remove("is-loading");
+  body.classList.add("is-ready");
   updateOnScroll();
 });
