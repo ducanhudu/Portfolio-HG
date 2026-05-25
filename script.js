@@ -10,10 +10,11 @@ const counters = [...document.querySelectorAll("[data-count-to]")];
 const magneticItems = [...document.querySelectorAll(".magnetic")];
 const interactiveCards = [
   ...document.querySelectorAll(
-    ".hero-facts li, .content-card, .metric-card, .timeline-item, .project-card, .education-card, .skill-panel, .contact-card"
+    ".hero-facts li, .content-card, .metric-card, .timeline-item, .project-card, .education-card, .skill-panel, .contact-card, .contact-shell, .contact-method, .contact-form-panel"
   ),
 ];
 const tiltCard = document.querySelector(".tilt-card");
+const contactForm = document.querySelector("#contact-form");
 const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 revealItems.forEach((item, index) => {
@@ -221,6 +222,33 @@ if (tiltCard) {
   });
 
   tiltCard.addEventListener("pointerleave", resetTilt);
+}
+
+if (contactForm) {
+  contactForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+
+    if (!contactForm.reportValidity()) {
+      return;
+    }
+
+    const formData = new FormData(contactForm);
+    const name = (formData.get("name") || "").toString().trim();
+    const email = (formData.get("email") || "").toString().trim();
+    const message = (formData.get("message") || "").toString().trim();
+
+    const subject = `Liên hệ từ portfolio - ${name}`;
+    const body = [
+      `Họ và tên: ${name}`,
+      `Email: ${email}`,
+      "",
+      "Lời nhắn:",
+      message,
+    ].join("\n");
+
+    window.location.href =
+      `mailto:huonggiang16032005@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  });
 }
 
 window.addEventListener("scroll", requestTick, { passive: true });
