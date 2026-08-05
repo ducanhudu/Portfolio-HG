@@ -11,6 +11,7 @@ const magneticItems = [...document.querySelectorAll(".magnetic")];
 const interactiveCards = [
   ...document.querySelectorAll(
     ".hero-facts li, .content-card, .metric-card, .timeline-item, .project-card, .education-card, .skill-panel, .contact-card, .contact-shell, .contact-method, .contact-form-panel"
+      + ", .research-card"
   ),
 ];
 const tiltCard = document.querySelector(".tilt-card");
